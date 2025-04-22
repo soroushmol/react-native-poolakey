@@ -21,7 +21,6 @@ def isNewArchitectureEnabled() {
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
 
-
 def appProject = rootProject.allprojects.find { it.plugins.hasPlugin('com.android.application') }
 
 if (isNewArchitectureEnabled()) {
@@ -67,10 +66,16 @@ android {
     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
     buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
   }
+
   buildTypes {
     release {
       minifyEnabled false
     }
+  }
+
+  // ✅ Gradle 8+ compatibility
+  buildFeatures {
+    buildConfig true
   }
 
   lintOptions {
@@ -81,7 +86,6 @@ android {
     sourceCompatibility JavaVersion.VERSION_1_8
     targetCompatibility JavaVersion.VERSION_1_8
   }
-
 }
 
 repositories {
@@ -92,9 +96,6 @@ repositories {
 def kotlin_version = getExtOrDefault("kotlinVersion")
 
 dependencies {
-  // For < 0.71, this will be from the local maven repo
-  // For > 0.71, this will be replaced by `com.facebook.react:react-android:$version` by react gradle plugin
-  //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
   implementation "com.github.cafebazaar.Poolakey:poolakey:2.2.0"
@@ -105,5 +106,20 @@ if (isNewArchitectureEnabled()) {
     jsRootDir = file("../src/")
     libraryName = "ReactNativePoolakey"
     codegenJavaPackageName = "ir.cafebazaar.poolakey.rn"
+  }
+}
+
+// ✅ Add publishing block so module is consumable
+afterEvaluate {
+  publishing {
+    publications {
+      release(MavenPublication) {
+        groupId = 'ir.cafebazaar'
+        artifactId = 'poolakey-react-native'
+        version = '1.0.0'
+
+        from components.findByName('release')
+      }
+    }
   }
 }
